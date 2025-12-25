@@ -41,7 +41,7 @@ redis-cli -p $PORT <<EOF
 XADD posts * title godis-is-good
 XADD posts * title not-joking
 TYPE posts
-XRANGE STREAMS posts - +
+XRANGE posts - +
 XREAD STREAMS posts 0-0
 EOF
 
