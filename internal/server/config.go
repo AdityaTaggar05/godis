@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/AdityaTaggar05/godis/internal/protocol"
@@ -13,6 +14,13 @@ type ServerConfig struct {
 	Dir        string
 	DBFilename string
 	MaxMemory  int64
+}
+
+func (s *ServerConfig) String() string {
+	return fmt.Sprintf(
+		"Server Configuration\n(PORT): %d\n(DIR): %s\n(DBFilename): %s\n(MaxMemory): %d",
+		s.Port, s.Dir, s.DBFilename, s.MaxMemory,
+	)
 }
 
 var getters = map[string]func() string{
