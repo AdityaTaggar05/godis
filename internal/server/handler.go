@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"net"
 
-	"github.com/codecrafters-io/redis-starter-go/app/protocol"
+	"github.com/AdityaTaggar05/godis/internal/protocol"
 )
 
 type ConnHandler struct {

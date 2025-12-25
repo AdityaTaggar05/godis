@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/codecrafters-io/redis-starter-go/app/protocol"
-	"github.com/codecrafters-io/redis-starter-go/app/store"
+	"github.com/AdityaTaggar05/godis/internal/protocol"
+	"github.com/AdityaTaggar05/godis/internal/store"
 )
 
 func GetString(key string) (string, bool) {

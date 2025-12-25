@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/codecrafters-io/redis-starter-go/app/protocol"
-	"github.com/codecrafters-io/redis-starter-go/app/types"
+	"github.com/AdityaTaggar05/godis/internal/protocol"
+	"github.com/AdityaTaggar05/godis/internal/types"
 )
 
 func (h *ConnHandler) handleRecover(r any) {

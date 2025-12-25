@@ -6,7 +6,7 @@ import (
 	"net"
 	"os"
 
-	"github.com/codecrafters-io/redis-starter-go/app/server"
+	"github.com/AdityaTaggar05/godis/internal/server"
 )
 
 func main() {

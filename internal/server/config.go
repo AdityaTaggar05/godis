@@ -3,7 +3,7 @@ package server
 import (
 	"sync"
 
-	"github.com/codecrafters-io/redis-starter-go/app/protocol"
+	"github.com/AdityaTaggar05/godis/internal/protocol"
 )
 
 type ServerConfig struct {

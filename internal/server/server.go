@@ -6,7 +6,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/codecrafters-io/redis-starter-go/app/protocol"
+	"github.com/AdityaTaggar05/godis/internal/protocol"
 )
 
 var DB sync.Map
