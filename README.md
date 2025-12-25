@@ -1,6 +1,4 @@
 # godis ⚡  
-*A Redis-like in-memory data store written in Go*
-
 `godis` is a lightweight Redis clone implemented from scratch in **Go**, designed to explore **TCP servers, concurrency safety, correct Redis semantics and clean internal architecture**.
 
 It implements a meaningful subset of Redis commands while preserving correct semantics such as **FIFO ordering**, **blocking behaviour**, and **safe concurrent access**.
