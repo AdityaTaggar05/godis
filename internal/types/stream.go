@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/AdityaTaggar05/godis/internal/protocol"
@@ -46,7 +45,6 @@ func (entry StreamEntry) ToArray() []any {
 	arr := make([]string, 0)
 
 	for key, value := range entry.fields {
-		fmt.Println(key)
 		arr = append(arr, key)
 		arr = append(arr, value)
 	}
@@ -115,10 +113,7 @@ func XRANGE(cmd protocol.Cmd) []StreamEntry {
 		after := entry.id.compare(start) >= 0
 		before := entry.id.compare(stop) <= 0 || (entry.id.ms == stop.ms && tillEnd)
 
-		fmt.Println(start, stop, tillEnd, entry.id.toString())
-
 		if after && before {
-			fmt.Println("AFTER")
 			entries = append(entries, entry)
 		}
 
