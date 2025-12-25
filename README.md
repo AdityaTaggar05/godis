@@ -70,3 +70,23 @@ Streams are implemented with:
 - FIFO fairness guaranteed for blocked clients
 
 ---
+
+## 📜 Demo
+
+This project is fully compatible with the official Redis CLI, allowing it to be demonstrated exactly like a real Redis server.
+First, ensure that redis-cli is installed on your system. For Windows, unfortunately, there is no direct way to use it other than WSL or a VM.
+
+Once that's taken care of, start the server with
+```
+go run ./cmd/server/
+```
+
+Then, in another terminal window, connect using Redis CLI and use the server:
+```
+redis-cli -p 6379
+```
+
+Or run the demo script using
+```
+./demo.sh
+```
