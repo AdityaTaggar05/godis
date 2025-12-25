@@ -32,16 +32,16 @@ var getters = map[string]func() string{
 	},
 }
 
-// var setters = map[string]func(string) error{
-// 	"dir": func(v string) error {
-// 		Server.Dir = v
-// 		return nil
-// 	},
-// 	"dbfilename": func(v string) error {
-// 		Server.DBFilename = v
-// 		return nil
-// 	},
-// }
+var setters = map[string]func(string) error{
+	"dir": func(v string) error {
+		Server.Dir = v
+		return nil
+	},
+	"dbfilename": func(v string) error {
+		Server.DBFilename = v
+		return nil
+	},
+}
 
 func CONFIG(cmd protocol.Cmd) []byte {
 	buf := make([]byte, 0)
@@ -54,7 +54,16 @@ func CONFIG(cmd protocol.Cmd) []byte {
 			data = append(data, getters[key]())
 		}
 		buf = append(buf, protocol.EncodeMultiBulk(data)...)
-		// case "SET":
+	case "SET":
+		for i := 1; i < len(cmd.Args); i += 2 {
+			key := cmd.Args[i]
+			value := cmd.Args[i+1]
+
+			if setter, ok := setters[key]; ok {
+				_ = setter(value)
+			}
+		}
+		buf = append(buf, protocol.EncodeSimple("OK")...)
 	}
 
 	return buf
