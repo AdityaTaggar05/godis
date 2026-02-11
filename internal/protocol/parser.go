@@ -2,9 +2,10 @@ package protocol
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
+	"io"
 	"strconv"
+	"strings"
 )
 
 type Cmd struct {
@@ -12,120 +13,153 @@ type Cmd struct {
 	Args    []string
 }
 
-func ReadCommand(reader *bufio.Reader) (*Cmd, error) {
-	line, err := reader.ReadBytes('\n')
+func ReadCommand(r *bufio.Reader) (Cmd, error) {
+	v, err := ReadResp(r)
+
+	if v.Type != '*' || len(v.Array) == 0 || err != nil {
+		return Cmd{}, fmt.Errorf("expected array command")
+	}
+
+	cmd := Cmd{
+		Command: strings.ToUpper(v.Array[0].Str),
+		Args:    make([]string, len(v.Array)-1),
+	}
+
+	for i := 1; i < len(v.Array); i++ {
+		cmd.Args[i-1] = v.Array[i].Str
+	}
+
+	return cmd, nil
+}
+
+type Value struct {
+	Type  byte
+	Str   string
+	Int   int64
+	Array []Value
+}
+
+func ReadResp(r *bufio.Reader) (Value, error) {
+	t, err := r.ReadByte()
 	if err != nil {
-		return nil, err
+		return Value{}, err
+	}
+
+	switch t {
+	case '$':
+		return readBulkString(r)
+	case '*':
+		return readArray(r)
+	case '+':
+		return readSimpleString(r)
+	case '-':
+		return readError(r)
+	case ':':
+		return readInteger(r)
+	default:
+		return Value{}, fmt.Errorf("unknown RESP type: %q", t)
+	}
+}
+
+func readLine(r *bufio.Reader) (string, error) {
+	line, err := r.ReadBytes('\n')
+	if err != nil {
+		return "", err
 	}
 
 	length := len(line)
 
 	if length < 2 || line[length-2] != '\r' {
-		return nil, fmt.Errorf("invalid command")
+		return "", fmt.Errorf("RESP Err: invalid line ending")
 	}
 
-	line = bytes.TrimSuffix(line, []byte{'\r', '\n'})
-
-	switch line[0] {
-	case '+':
-		return parseInlineCommand(string(line[1:])), nil
-	case '*':
-		return parseMultiBulkCommand(reader, line)
-	default:
-		args := bytes.Split(line, []byte{' '})
-		return &Cmd{Command: string(args[0]), Args: bytesToStrings(args[1:])}, nil
-	}
+	return string(line[:length-2]), nil
 }
 
-func parseInlineCommand(content string) *Cmd {
-	return &Cmd{Command: content}
-}
-
-func parseBulkString(reader *bufio.Reader, line []byte) (string, error) {
-	length, err := parseCount(line)
+func readCount(r *bufio.Reader) (int64, error) {
+	line, err := readLine(r)
 	if err != nil {
-		return "", err
+		return -1, err
 	}
 
-	if length == 0 {
-		return "", nil
-	}
-
-	content := make([]byte, length+2)
-	_, err = reader.Read(content)
+	count, err := strconv.ParseInt(line, 10, 64)
 	if err != nil {
-		return "", err
-	}
-
-	if content[length] != '\r' || content[length+1] != '\n' {
-		return "", fmt.Errorf("invalid command")
-	}
-
-	return string(content[:length]), nil
-}
-
-func parseMultiBulkCommand(reader *bufio.Reader, line []byte) (*Cmd, error) {
-	count, err := parseCount(line)
-	if err != nil {
-		return nil, err
-	}
-
-	cmd := Cmd{}
-	cmd.Args = make([]string, count)
-
-	for i := 0; i < count; i++ {
-		line, err := reader.ReadBytes('\n')
-		if err != nil {
-			return nil, err
-		}
-
-		length := len(line)
-
-		if length < 2 || line[length-2] != '\r' {
-			return nil, fmt.Errorf("invalid command")
-		}
-
-		line = bytes.TrimSuffix(line, []byte{'\r', '\n'})
-
-		switch line[0] {
-		case '$':
-			content, err := parseBulkString(reader, line)
-			if err != nil {
-				return nil, err
-			}
-			cmd.Args[i] = content
-		default:
-			return nil, fmt.Errorf("invalid command")
-		}
-	}
-
-	cmd.Command = cmd.Args[0]
-	cmd.Args = cmd.Args[1:]
-
-	return &cmd, nil
-}
-
-func parseCount(line []byte) (int, error) {
-	count, err := parseInteger(line)
-	if err != nil {
-		return 0, err
-	}
-
-	if count < 0 {
-		return 0, fmt.Errorf("invalid command")
+		return -1, err
 	}
 
 	return count, nil
 }
 
-func parseInteger(line []byte) (int, error) {
-	return strconv.Atoi(string(line[1:]))
+func readError(r *bufio.Reader) (Value, error) {
+	line, err := readLine(r)
+	if err != nil {
+		return Value{}, err
+	}
+
+	return Value{
+		Type: '-',
+		Str:  line,
+	}, nil
 }
 
-func bytesToStrings(bytes [][]byte) []string {
-	strings := make([]string, len(bytes))
-	for i, b := range bytes {
-		strings[i] = string(b)
+func readInteger(r *bufio.Reader) (Value, error) {
+	line, err := readCount(r)
+	if err != nil {
+		return Value{}, err
 	}
-	return strings
+
+	return Value{
+		Type: ':',
+		Int:  line,
+	}, nil
+}
+
+func readSimpleString(r *bufio.Reader) (Value, error) {
+	line, err := readLine(r)
+	if err != nil {
+		return Value{}, err
+	}
+
+	return Value{
+		Type: '+',
+		Str:  line,
+	}, nil
+}
+
+func readBulkString(r *bufio.Reader) (Value, error) {
+	count, err := readCount(r)
+	if err != nil {
+		return Value{}, err
+	}
+
+	buf := make([]byte, count)
+	io.ReadFull(r, buf)
+	r.ReadBytes('\n')
+
+	return Value{
+		Type: '$',
+		Str:  string(buf),
+	}, nil
+}
+
+func readArray(r *bufio.Reader) (Value, error) {
+	count, err := readCount(r)
+	if err != nil {
+		return Value{}, err
+	}
+
+	val := Value{
+		Type: '*',
+	}
+
+	for range count {
+		item, err := ReadResp(r)
+		if err != nil {
+			return Value{}, err
+		}
+
+		val.Array = append(val.Array, item)
+	}
+
+	return val, nil
 }

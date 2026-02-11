@@ -37,7 +37,7 @@ func EncodeMultiBulk(s []string) []byte {
 func EncodeArray(arr []any) []byte {
 	var buf []byte
 
-	buf = append(buf, []byte(fmt.Sprintf("*%d\r\n", len(arr)))...)
+	buf = append(buf, fmt.Appendf(nil, "*%d\r\n", len(arr))...)
 
 	for _, v := range arr {
 		switch x := v.(type) {
