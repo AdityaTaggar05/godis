@@ -16,7 +16,11 @@ type Cmd struct {
 func ReadCommand(r *bufio.Reader) (Cmd, error) {
 	v, err := ReadResp(r)
 
-	if v.Type != '*' || len(v.Array) == 0 || err != nil {
+	if err != nil {
+		return Cmd{}, err
+	}
+
+	if v.Type != '*' || len(v.Array) == 0 {
 		return Cmd{}, fmt.Errorf("expected array command")
 	}
 
