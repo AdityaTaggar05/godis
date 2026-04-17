@@ -13,6 +13,13 @@ type Cmd struct {
 	Args    []string
 }
 
+type value struct {
+	Type  byte
+	Str   string
+	Int   int64
+	Array []value
+}
+
 func ReadCommand(r *bufio.Reader) (Cmd, error) {
 	v, err := ReadResp(r)
 
@@ -36,17 +43,10 @@ func ReadCommand(r *bufio.Reader) (Cmd, error) {
 	return cmd, nil
 }
 
-type Value struct {
-	Type  byte
-	Str   string
-	Int   int64
-	Array []Value
-}
-
-func ReadResp(r *bufio.Reader) (Value, error) {
+func ReadResp(r *bufio.Reader) (value, error) {
 	t, err := r.ReadByte()
 	if err != nil {
-		return Value{}, err
+		return value{}, err
 	}
 
 	switch t {
@@ -61,7 +61,7 @@ func ReadResp(r *bufio.Reader) (Value, error) {
 	case ':':
 		return readInteger(r)
 	default:
-		return Value{}, fmt.Errorf("unknown RESP type: %q", t)
+		return value{}, fmt.Errorf("unknown RESP type: %q", t)
 	}
 }
 
@@ -94,72 +94,72 @@ func readCount(r *bufio.Reader) (int64, error) {
 	return count, nil
 }
 
-func readError(r *bufio.Reader) (Value, error) {
+func readError(r *bufio.Reader) (value, error) {
 	line, err := readLine(r)
 	if err != nil {
-		return Value{}, err
+		return value{}, err
 	}
 
-	return Value{
+	return value{
 		Type: '-',
 		Str:  line,
 	}, nil
 }
 
-func readInteger(r *bufio.Reader) (Value, error) {
+func readInteger(r *bufio.Reader) (value, error) {
 	line, err := readCount(r)
 	if err != nil {
-		return Value{}, err
+		return value{}, err
 	}
 
-	return Value{
+	return value{
 		Type: ':',
 		Int:  line,
 	}, nil
 }
 
-func readSimpleString(r *bufio.Reader) (Value, error) {
+func readSimpleString(r *bufio.Reader) (value, error) {
 	line, err := readLine(r)
 	if err != nil {
-		return Value{}, err
+		return value{}, err
 	}
 
-	return Value{
+	return value{
 		Type: '+',
 		Str:  line,
 	}, nil
 }
 
-func readBulkString(r *bufio.Reader) (Value, error) {
+func readBulkString(r *bufio.Reader) (value, error) {
 	count, err := readCount(r)
 	if err != nil {
-		return Value{}, err
+		return value{}, err
 	}
 
 	buf := make([]byte, count)
 	io.ReadFull(r, buf)
 	r.ReadBytes('\n')
 
-	return Value{
+	return value{
 		Type: '$',
 		Str:  string(buf),
 	}, nil
 }
 
-func readArray(r *bufio.Reader) (Value, error) {
+func readArray(r *bufio.Reader) (value, error) {
 	count, err := readCount(r)
 	if err != nil {
-		return Value{}, err
+		return value{}, err
 	}
 
-	val := Value{
+	val := value{
 		Type: '*',
 	}
 
 	for range count {
 		item, err := ReadResp(r)
 		if err != nil {
-			return Value{}, err
+			return value{}, err
 		}
 
 		val.Array = append(val.Array, item)
